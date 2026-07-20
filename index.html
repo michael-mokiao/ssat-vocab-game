@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSAT Vocabulary Challenge</title>
+<meta name="description" content="A colorful, interactive multiple-choice game to learn SSAT vocabulary words.">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  @keyframes pop { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  .pop-in { animation: pop 0.25s ease-out; }
+  @keyframes shake { 10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(4px);} 30%,50%,70%{transform:translateX(-8px);} 40%,60%{transform:translateX(8px);} }
+  .shake { animation: shake 0.5s; }
+  .choice-btn { transition: transform 0.1s, background-color 0.15s, border-color 0.15s; }
+  .choice-btn:not(:disabled):hover { transform: translateY(-2px); }
+  .choice-btn:not(:disabled):active { transform: translateY(0); }
+</style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-100 via-sky-50 to-emerald-100 flex items-center justify-center p-4">
+
+<div class="w-full max-w-xl">
+
+  <div class="text-center mb-4">
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-indigo-700 tracking-tight">🎓 SSAT Vocabulary Challenge</h1>
+    <p class="text-sm text-slate-500 mt-1">Master the words. Ace the test.</p>
+  </div>
+
+  <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8">
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="text-center py-6">
+      <div class="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-4 text-3xl">📚</div>
+      <p class="text-lg font-bold text-slate-800 mb-2">Ready to play?</p>
+      <p class="text-sm text-slate-500 mb-6 max-w-sm mx-auto">10 random words, 4 answer choices each, 30 seconds per question. Pick the best definition or synonym for the target word.</p>
+      <button id="start-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-indigo-200 transition transform hover:scale-105">
+        Start Game
+      </button>
+      <p class="text-xs text-slate-400 mt-4">50-word SSAT bank &middot; new random set every round</p>
+    </div>
+
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="hidden">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm font-semibold text-slate-500">Question <span id="q-num">1</span> / 10</span>
+        <span class="flex items-center gap-1 bg-amber-100 text-amber-700 font-bold text-sm px-3 py-1 rounded-full">
+          ⭐ <span id="score-val">0</span>
+        </span>
+      </div>
+
+      <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden mb-4">
+        <div id="progress-fill" class="h-full bg-indigo-500 rounded-full transition-all duration-300" style="width:0%"></div>
+      </div>
+
+      <div class="flex items-center gap-2 mb-5">
+        <span class="text-slate-400 text-sm">⏱</span>
+        <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div id="timer-fill" class="h-full bg-emerald-400 rounded-full transition-all duration-1000 linear" style="width:100%"></div>
+        </div>
+        <span id="timer-num" class="text-sm font-semibold text-slate-500 w-6 text-right">30</span>
+      </div>
+
+      <div class="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl py-8 px-4 text-center mb-6 shadow-lg shadow-indigo-100" id="word-card">
+        <p class="text-xs uppercase tracking-widest text-indigo-200 font-bold mb-2">Target Word</p>
+        <p id="target-word" class="text-3xl sm:text-4xl font-extrabold text-white">Word</p>
+      </div>
+
+      <div id="choices" class="flex flex-col gap-3"></div>
+
+      <div id="feedback" class="hidden mt-5 rounded-2xl p-4 border-2 pop-in">
+        <div class="flex items-center gap-2 mb-1">
+          <span id="feedback-icon" class="text-xl"></span>
+          <span id="feedback-title" class="font-bold"></span>
+        </div>
+        <p id="feedback-def" class="text-sm text-slate-600 mb-1"></p>
+        <p id="feedback-sentence" class="text-sm text-slate-400 italic"></p>
+        <button id="next-btn" class="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-full transition transform hover:scale-105">
+          Next Question
+        </button>
+      </div>
+    </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="hidden text-center py-6">
+      <div id="end-icon-wrap" class="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4 text-4xl">🏆</div>
+      <p class="text-sm text-slate-500 mb-1">Final Score</p>
+      <p id="final-score" class="text-5xl font-extrabold text-indigo-700 mb-3">0 / 10</p>
+      <p id="end-message" class="text-sm text-slate-500 mb-6 max-w-sm mx-auto"></p>
+      <button id="again-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg shadow-indigo-200 transition transform hover:scale-105">
+        Play Again
+      </button>
+    </div>
+
+  </div>
+
+  <p class="text-center text-xs text-slate-400 mt-4">Built for SSAT prep &middot; open this file in any browser to play</p>
+</div>
+
+<script>
+(function(){
+var WORDS = [
+{w:"Abate",d:"To become less intense or severe",s:"The storm's fury began to abate by midnight."},
+{w:"Benevolent",d:"Kind, generous, and caring toward others",s:"The benevolent king built hospitals for the poor."},
+{w:"Candid",d:"Honest and straightforward; not hiding one's thoughts",s:"She gave a candid answer about her mistakes."},
+{w:"Diligent",d:"Showing careful and persistent effort",s:"The diligent student studied every night."},
+{w:"Frugal",d:"Careful not to waste money or resources",s:"He was frugal, saving most of his paycheck."},
+{w:"Gregarious",d:"Fond of company; sociable",s:"The gregarious host loved throwing parties."},
+{w:"Tenacious",d:"Holding firmly to a purpose; persistent",s:"Her tenacious grip on the rope saved her life."},
+{w:"Opulent",d:"Luxurious and expensive-looking",s:"The opulent mansion had gold-trimmed ceilings."},
+{w:"Ambiguous",d:"Open to more than one interpretation; unclear",s:"His ambiguous answer left everyone confused."},
+{w:"Belligerent",d:"Hostile and aggressive",s:"The belligerent customer shouted at the clerk."},
+{w:"Concise",d:"Giving information clearly in few words",s:"Her concise summary saved everyone time."},
+{w:"Deceive",d:"To make someone believe something untrue",s:"He tried to deceive the judges with a fake story."},
+{w:"Eloquent",d:"Fluent and persuasive in speaking or writing",s:"The eloquent speaker moved the crowd to tears."},
+{w:"Fickle",d:"Changing frequently, especially in loyalty",s:"His fickle taste in music changed every week."},
+{w:"Gullible",d:"Easily tricked or deceived",s:"The gullible tourist bought a fake watch."},
+{w:"Hostile",d:"Unfriendly and aggressive",s:"The hostile crowd booed the referee."},
+{w:"Impartial",d:"Treating all sides equally; not biased",s:"The impartial judge listened to both sides fairly."},
+{w:"Jubilant",d:"Feeling or expressing great happiness",s:"The jubilant fans celebrated the championship win."},
+{w:"Lethargic",d:"Lacking energy; sluggish",s:"The lethargic dog barely lifted its head."},
+{w:"Meticulous",d:"Very careful and precise about details",s:"The meticulous editor checked every comma."},
+{w:"Novice",d:"A person new to a skill or activity",s:"As a novice cook, she burned the toast."},
+{w:"Obstinate",d:"Stubbornly refusing to change one's mind",s:"The obstinate child refused to eat vegetables."},
+{w:"Pragmatic",d:"Dealing with things in a sensible, practical way",s:"The pragmatic manager chose the cheaper, faster option."},
+{w:"Quell",d:"To put an end to; suppress",s:"The teacher's calm voice helped quell the panic."},
+{w:"Reticent",d:"Reluctant to speak openly",s:"He was reticent about his plans for the future."},
+{w:"Skeptical",d:"Having doubts; not easily convinced",s:"She remained skeptical of the salesman's claims."},
+{w:"Taciturn",d:"Saying very little; reserved in speech",s:"The taciturn stranger answered only in single words."},
+{w:"Ubiquitous",d:"Present or found everywhere",s:"Smartphones have become ubiquitous in modern life."},
+{w:"Vivacious",d:"Full of energy and enthusiasm",s:"The vivacious dancer lit up the stage."},
+{w:"Zealous",d:"Showing great energy and enthusiasm for a cause",s:"The zealous volunteers worked all weekend on the project."},
+{w:"Adversity",d:"Difficulty or hardship",s:"She overcame great adversity to become a doctor."},
+{w:"Brevity",d:"Shortness of time or expression",s:"The brevity of his speech impressed the audience."},
+{w:"Candor",d:"The quality of being open and honest",s:"I appreciated her candor when she admitted the error."},
+{w:"Diminish",d:"To make or become smaller or less",s:"The pain began to diminish after a few hours."},
+{w:"Empathy",d:"The ability to understand and share others' feelings",s:"Her empathy helped comfort her grieving friend."},
+{w:"Fortify",d:"To strengthen or protect",s:"They fortified the castle walls before the siege."},
+{w:"Hinder",d:"To create difficulty for; delay or obstruct",s:"Heavy rain hindered the rescue efforts."},
+{w:"Innate",d:"Existing from birth; natural rather than learned",s:"She has an innate talent for music."},
+{w:"Jargon",d:"Special words or phrases used by a particular profession",s:"The doctor's jargon confused the new patients."},
+{w:"Kindle",d:"To start a fire or arouse a feeling",s:"The story helped kindle her interest in history."},
+{w:"Lucid",d:"Clear and easy to understand",s:"His lucid explanation made the topic simple."},
+{w:"Malice",d:"A desire to harm others",s:"There was no malice in his harmless prank."},
+{w:"Naive",d:"Showing a lack of experience or judgment",s:"It was naive of him to trust a stranger with his savings."},
+{w:"Ominous",d:"Suggesting that something bad is going to happen",s:"Dark, ominous clouds gathered over the field."},
+{w:"Placid",d:"Calm and peaceful, without much disturbance",s:"The lake was placid on that quiet morning."},
+{w:"Query",d:"A question, especially one expressing doubt",s:"The librarian answered every query patiently."},
+{w:"Rigid",d:"Stiff and inflexible",s:"The rigid metal rod would not bend."},
+{w:"Sparse",d:"Thinly spread or scattered; not dense",s:"The desert had only sparse vegetation."},
+{w:"Trivial",d:"Of little importance or value",s:"They argued over a trivial detail."},
+{w:"Vindicate",d:"To clear someone of blame or suspicion",s:"New evidence helped vindicate the accused man."}
+];
+
+var state = {pool:[], idx:0, score:0, timer:null, timeLeft:30, answered:false, correctIdx:0};
+var LETTERS = ["A","B","C","D"];
+
+function shuffle(arr){
+  var a = arr.slice();
+  for(var i=a.length-1;i>0;i--){
+    var j = Math.floor(Math.random()*(i+1));
+    var t=a[i]; a[i]=a[j]; a[j]=t;
+  }
+  return a;
+}
+
+function $(id){return document.getElementById(id);}
+
+function startGame(){
+  state.pool = shuffle(WORDS).slice(0,10);
+  state.idx = 0;
+  state.score = 0;
+  $("score-val").textContent = "0";
+  $("start-screen").classList.add("hidden");
+  $("end-screen").classList.add("hidden");
+  $("quiz-screen").classList.remove("hidden");
+  loadQuestion();
+}
+
+function loadQuestion(){
+  state.answered = false;
+  var item = state.pool[state.idx];
+  $("q-num").textContent = String(state.idx+1);
+  $("progress-fill").style.width = (state.idx/10*100)+"%";
+  $("target-word").textContent = item.w;
+  $("feedback").classList.add("hidden");
+
+  var others = shuffle(WORDS.filter(function(x){return x.w!==item.w;})).slice(0,3);
+  var options = shuffle([{d:item.d,correct:true}].concat(others.map(function(o){return {d:o.d,correct:false};})));
+  state.correctIdx = options.findIndex(function(o){return o.correct;});
+
+  var html = "";
+  for(var i=0;i<options.length;i++){
+    html += '<button class="choice-btn text-left flex items-start gap-3 w-full p-4 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-indigo-300" data-idx="'+i+'" onclick="__sqSelect('+i+')">'+
+      '<span class="flex-none w-7 h-7 rounded-full bg-white border-2 border-slate-300 flex items-center justify-center text-xs font-bold text-slate-500">'+LETTERS[i]+'</span>'+
+      '<span class="text-sm text-slate-700 mt-0.5">'+options[i].d+'</span></button>';
+  }
+  $("choices").innerHTML = html;
+
+  clearInterval(state.timer);
+  state.timeLeft = 30;
+  $("timer-num").textContent = "30";
+  $("timer-fill").style.width = "100%";
+  $("timer-fill").className = "h-full bg-emerald-400 rounded-full transition-all duration-1000 linear";
+  state.timer = setInterval(function(){
+    state.timeLeft--;
+    $("timer-num").textContent = String(state.timeLeft);
+    $("timer-fill").style.width = (state.timeLeft/30*100)+"%";
+    if(state.timeLeft<=10){ $("timer-fill").className = "h-full bg-rose-400 rounded-full transition-all duration-1000 linear"; }
+    if(state.timeLeft<=0){
+      clearInterval(state.timer);
+      selectAnswer(-1);
+    }
+  },1000);
+}
+
+function selectAnswer(chosenIdx){
+  if(state.answered) return;
+  state.answered = true;
+  clearInterval(state.timer);
+  var item = state.pool[state.idx];
+  var btns = document.querySelectorAll(".choice-btn");
+  var isCorrect = chosenIdx === state.correctIdx;
+
+  btns.forEach(function(btn,i){
+    btn.disabled = true;
+    if(i===state.correctIdx){
+      btn.classList.remove("bg-slate-50","border-slate-200");
+      btn.classList.add("bg-emerald-50","border-emerald-400");
+    } else if(i===chosenIdx){
+      btn.classList.remove("bg-slate-50","border-slate-200");
+      btn.classList.add("bg-rose-50","border-rose-400","shake");
+    }
+  });
+
+  if(isCorrect){
+    state.score++;
+    $("score-val").textContent = String(state.score);
+  }
+
+  var fb = $("feedback");
+  fb.className = "mt-5 rounded-2xl p-4 border-2 pop-in " + (isCorrect ? "bg-emerald-50 border-emerald-300" : "bg-rose-50 border-rose-300");
+  $("feedback-icon").textContent = isCorrect ? "✅" : "❌";
+  $("feedback-title").textContent = chosenIdx===-1 ? "Time's up! The answer was:" : (isCorrect ? "Correct! Nice work." : "Not quite.");
+  $("feedback-title").className = "font-bold " + (isCorrect ? "text-emerald-700" : "text-rose-700");
+  $("feedback-def").textContent = item.w+" means: "+item.d+".";
+  $("feedback-sentence").textContent = item.s;
+  $("next-btn").textContent = state.idx===9 ? "See Results" : "Next Question";
+  fb.classList.remove("hidden");
+  $("progress-fill").style.width = ((state.idx+1)/10*100)+"%";
+}
+
+function nextQuestion(){
+  state.idx++;
+  if(state.idx>=10){ showEnd(); }
+  else { loadQuestion(); }
+}
+
+function showEnd(){
+  $("quiz-screen").classList.add("hidden");
+  $("end-screen").classList.remove("hidden");
+  $("final-score").textContent = state.score+" / 10";
+  var msg, icon, iconBg;
+  if(state.score>=9){ msg="Perfect score! You're a vocabulary superstar."; icon="🏆"; iconBg="bg-amber-100"; }
+  else if(state.score>=7){ msg="Excellent work! You really know your words."; icon="🌟"; iconBg="bg-indigo-100"; }
+  else if(state.score>=5){ msg="Good job! Keep practicing to master a few more."; icon="👍"; iconBg="bg-sky-100"; }
+  else { msg="Nice effort! Review the words below and try again."; icon="📚"; iconBg="bg-rose-100"; }
+  $("end-message").textContent = msg;
+  $("end-icon-wrap").textContent = icon;
+  $("end-icon-wrap").className = "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl " + iconBg;
+}
+
+window.__sqSelect = selectAnswer;
+$("start-btn").addEventListener("click", startGame);
+$("next-btn").addEventListener("click", nextQuestion);
+$("again-btn").addEventListener("click", startGame);
+})();
+</script>
+</body>
+</html>
